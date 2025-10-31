@@ -1,0 +1,90 @@
+Express.js Backend (API)
+
+const express = require('express');
+const app = express();
+const port = 5000;
+
+const products = [
+  { id: 1, name: "Laptop", price: 1200 },
+  { id: 2, name: "Mouse", price: 25 },
+  { id: 3, name: "Keyboard", price: 45 }
+];
+
+app.get('/api/products', (req, res) => {
+  res.json(products);
+});
+
+app.listen(port, () => {
+  console.log(`API server running at http://localhost:${port}`);
+});
+
+React
+
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+function ProductList() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    axios.get('http://localhost:5000/api/products')
+      .then(res => {
+        setProducts(res.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Failed to fetch products');
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <p>Loading products...</p>;
+  if (error) return <p>{error}</p>;
+
+  return (
+    <div style={{
+      background: '#222',
+      padding: '20px'
+    }}>
+      <h2 style={{
+        textAlign: 'center',
+        color: '#fff'
+      }}>Product List</h2>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '28px' }}>
+        {products.map(prod => (
+          <div key={prod.id} style={{
+            width: '260px',
+            background: '#222',
+            border: '2px solid #aaa',
+            borderRadius: '8px',
+            padding: '28px 0',
+            textAlign: 'center'
+          }}>
+            <h3 style={{
+              color: '#eee',
+              fontWeight: 'bold'
+            }}>{prod.name}</h3>
+            <p style={{
+              color: '#ccc'
+            }}>Price: ${prod.price}</p>
+            <button style={{
+              background: '#09f',
+              border: 'none',
+              color: '#fff',
+              padding: '10px 28px',
+              marginTop: '14px',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}>Buy Now</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default ProductList;
