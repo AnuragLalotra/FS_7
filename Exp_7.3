@@ -1,0 +1,119 @@
+1. Express Backend with Socket.io
+Install dependencies:
+
+npm install express socket.io
+
+Create server.js:
+
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
+
+let messages = [];
+
+io.on('connection', (socket) => {
+  socket.emit('chat history', messages);
+
+  socket.on('send message', (msgObj) => {
+    messages.push(msgObj);
+    io.emit('receive message', msgObj);
+  });
+
+  socket.on('disconnect', () => {});
+});
+
+server.listen(5000, () => {
+  console.log('Socket.io server running on port 5000');
+});
+
+2. React Frontend (Chat UI with Socket.io Client)
+Install dependencies:
+
+npm install socket.io-client
+
+Create your main chat component:
+
+import React, { useEffect, useState, useRef } from 'react';
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:5000');
+
+function ChatApp() {
+  const [name, setName] = useState('');
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([]);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    socket.on('chat history', (history) => {
+      setMessages(history);
+    });
+    socket.on('receive message', (msgObj) => {
+      setMessages(prev => [...prev, msgObj]);
+    });
+    return () => {
+      socket.off('chat history');
+      socket.off('receive message');
+    };
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSend = (e) => {
+    e.preventDefault();
+    if (name && input) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+      socket.emit('send message', { name, message: input, time: timeStr });
+      setInput('');
+    }
+  };
+
+  return (
+    <div style={{ border: '2px solid #222', maxWidth: 400, margin: 8, padding: 20 }}>
+      <h2 style={{ textAlign: 'center' }}>Real-Time Chat</h2>
+      <input
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="Enter your name"
+        style={{ width: '100%', marginBottom: 12, padding: 8 }}
+        disabled={!!name}
+      />
+      <div style={{
+        height: 180, border: '1px solid #ccc', marginBottom: 14, padding: 8,
+        overflowY: 'auto', background: '#fff'
+      }}>
+        {messages.map((msg, idx) => (
+          <div key={idx}>
+            <strong>{msg.name}</strong> [{msg.time}]: {msg.message}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+      <form onSubmit={handleSend}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Type your message..."
+          style={{ width: '80%', padding: 6 }}
+        />
+        <button type="submit" style={{
+          background: '#09f', color: '#fff', border: 'none', marginLeft: 10,
+          padding: '6px 24px', borderRadius: 4, cursor: 'pointer'
+        }}>
+          Send
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default ChatApp;
